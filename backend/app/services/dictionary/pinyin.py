@@ -1,6 +1,5 @@
 """Pinyin utilities (offline)."""
 
-from __future__ import annotations
 
 from pypinyin import Style, pinyin
 

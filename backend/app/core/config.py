@@ -1,44 +1,48 @@
 """App config loader."""
 
-from __future__ import annotations
 
 import os
-from dataclasses import dataclass
 from typing import Any, Dict, List
 
 import yaml
 
 
-@dataclass
 class AppConfig:
-    name: str
-    secret_key: str
-    token_expire_minutes: int
+    def __init__(self, name: str, secret_key: str, token_expire_minutes: int) -> None:
+        self.name = name
+        self.secret_key = secret_key
+        self.token_expire_minutes = token_expire_minutes
 
 
-@dataclass
 class AccountConfig:
-    username: str
-    password_hash: str
+    def __init__(self, username: str, password_hash: str) -> None:
+        self.username = username
+        self.password_hash = password_hash
 
 
-@dataclass
 class SqliteConfig:
-    path: str
+    def __init__(self, path: str) -> None:
+        self.path = path
 
 
-@dataclass
 class DictionaryConfig:
-    source: str
-    max_common_words: int
+    def __init__(self, source: str, max_common_words: int) -> None:
+        self.source = source
+        self.max_common_words = max_common_words
 
 
-@dataclass
 class Settings:
-    app: AppConfig
-    accounts: List[AccountConfig]
-    sqlite: SqliteConfig
-    dictionary: DictionaryConfig
+    def __init__(
+        self,
+        app: AppConfig,
+        accounts: List[AccountConfig],
+        sqlite: SqliteConfig,
+        dictionary: DictionaryConfig,
+    ) -> None:
+        self.app = app
+        self.accounts = accounts
+        self.sqlite = sqlite
+        self.dictionary = dictionary
 
 
 def _require_key(data: Dict[str, Any], key: str) -> Any:

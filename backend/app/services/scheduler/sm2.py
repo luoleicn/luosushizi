@@ -1,17 +1,18 @@
 """SM-2 scheduling algorithm."""
 
-from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 
-@dataclass
 class ReviewResult:
-    ease_factor: float
-    interval: int
-    repetitions: int
-    next_review_at: datetime
+    def __init__(
+        self, ease_factor: float, interval: int, repetitions: int, next_review_at: datetime
+    ) -> None:
+        self.ease_factor = ease_factor
+        self.interval = interval
+        self.repetitions = repetitions
+        self.next_review_at = next_review_at
 
 
 def apply_sm2(
@@ -20,7 +21,7 @@ def apply_sm2(
     interval: int,
     repetitions: int,
     rating: int,
-    reviewed_at: datetime | None = None,
+    reviewed_at: Optional[datetime] = None,
 ) -> ReviewResult:
     # Rating should be 0-5. Use 0-2 for unknown, 3-5 for known.
     if reviewed_at is None:

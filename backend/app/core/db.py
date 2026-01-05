@@ -1,6 +1,5 @@
 """SQLite helpers and schema initialization."""
 
-from __future__ import annotations
 
 import os
 import sqlite3

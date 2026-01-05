@@ -1,8 +1,8 @@
 """Study queue and review endpoints."""
 
-from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
@@ -18,18 +18,18 @@ router = APIRouter(prefix="/study", tags=["study"])
 class QueueItem(BaseModel):
     hanzi: str
     pinyin: str
-    due_at: str | None
+    due_at: Optional[str]
     is_new: bool
 
 
 class QueueResponse(BaseModel):
-    items: list[QueueItem]
+    items: List[QueueItem]
 
 
 class ReviewRequest(BaseModel):
     hanzi: str
     rating: int
-    reviewed_at: str | None = None
+    reviewed_at: Optional[str] = None
 
 
 class ReviewResponse(BaseModel):
@@ -45,7 +45,7 @@ class SessionStartResponse(BaseModel):
 
 class SessionEndRequest(BaseModel):
     session_id: int
-    ended_at: str | None = None
+    ended_at: Optional[str] = None
 
 
 class SessionEndResponse(BaseModel):
@@ -115,11 +115,7 @@ def review_card(payload: ReviewRequest, request: Request, current_user: dict = D
         interval = sr["interval"] if sr else 0
         repetitions = sr["repetitions"] if sr else 0
 
-        reviewed_at = (
-            datetime.fromisoformat(payload.reviewed_at)
-            if payload.reviewed_at
-            else datetime.now(timezone.utc)
-        )
+        reviewed_at = parse_iso_datetime(payload.reviewed_at)
         result = apply_sm2(
             ease_factor=ease_factor,
             interval=interval,
@@ -187,11 +183,7 @@ def end_session(
     settings = get_settings(request)
     conn = get_connection(settings.sqlite.path)
     try:
-        ended_at = (
-            datetime.fromisoformat(payload.ended_at).isoformat()
-            if payload.ended_at
-            else datetime.now(timezone.utc).isoformat()
-        )
+        ended_at = parse_iso_datetime(payload.ended_at).isoformat()
         conn.execute(
             """
             UPDATE study_sessions
@@ -204,3 +196,20 @@ def end_session(
         return {"session_id": payload.session_id, "ended_at": ended_at}
     finally:
         conn.close()
+
+
+def parse_iso_datetime(value: Optional[str]) -> datetime:
+    if not value:
+        return datetime.now(timezone.utc)
+    iso_value = value.replace("Z", "+00:00")
+    for fmt in ("%Y-%m-%dT%H:%M:%S.%f%z", "%Y-%m-%dT%H:%M:%S%z"):
+        try:
+            return datetime.strptime(iso_value, fmt)
+        except ValueError:
+            continue
+    for fmt in ("%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S"):
+        try:
+            return datetime.strptime(iso_value, fmt).replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+    return datetime.now(timezone.utc)

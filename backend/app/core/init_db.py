@@ -1,6 +1,5 @@
 """Initialize app database schema."""
 
-from __future__ import annotations
 
 from app.core.config import get_config_path, load_config
 from app.core.db import get_connection, init_schema

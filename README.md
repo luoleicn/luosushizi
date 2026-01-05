@@ -30,12 +30,14 @@ python backend/app/services/dictionary/thuocl_import.py \
 ```
 
 ## 后端（FastAPI）
+本项目兼容 Python 3.6.9，依赖已在 `backend/requirements.txt` 中固定版本。
+
 ### macOS 环境准备
-- 安装 Python 3.10+（建议使用 Homebrew：`brew install python`）
+- 安装 Python 3.6.9+（建议 3.10+，Homebrew：`brew install python`）
 - 安装 Node.js 18+（建议使用 Homebrew：`brew install node`）
 
 ### Ubuntu 环境准备
-- 安装 Python 3.10+：`sudo apt-get update && sudo apt-get install -y python3 python3-venv python3-pip`
+- 安装 Python 3.6.9+：`sudo apt-get update && sudo apt-get install -y python3 python3-venv python3-pip`
 - 安装 Node.js 18+（示例）：`sudo apt-get install -y nodejs npm`
 
 安装依赖：

@@ -1,8 +1,8 @@
 """Character endpoints."""
 
-from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import List
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
@@ -23,7 +23,7 @@ class CharacterInfoResponse(BaseModel):
 
 
 class ImportRequest(BaseModel):
-    items: list[str]
+    items: List[str]
 
 
 class ImportResponse(BaseModel):
@@ -37,7 +37,7 @@ class CharacterListItem(BaseModel):
 
 
 class CharacterListResponse(BaseModel):
-    items: list[CharacterListItem]
+    items: List[CharacterListItem]
 
 
 def get_settings(request: Request) -> Settings:
