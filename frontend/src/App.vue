@@ -8,16 +8,6 @@
           <p>Learn one character at a time</p>
         </div>
       </div>
-      <div class="dict-select" v-if="dictionary.items.length">
-        <label>
-          字典
-          <select v-model="dictionary.currentId">
-            <option v-for="item in dictionary.items" :key="item.id" :value="item.id">
-              {{ item.name }}{{ item.visibility === "public" ? "（公开）" : "" }}{{ !item.is_owner && item.visibility === "public" ? "（只读）" : "" }}
-            </option>
-          </select>
-        </label>
-      </div>
       <nav class="nav">
         <router-link to="/study">学习</router-link>
         <router-link to="/input">录入</router-link>
@@ -158,22 +148,6 @@ onMounted(() => {
   font-weight: 600;
 }
 
-.dict-select {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.6);
-}
-
-.dict-select select {
-  padding: 6px 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  background: #fff;
-  font-weight: 600;
-}
-
 .user-desktop {
   display: flex;
   align-items: center;
@@ -207,19 +181,6 @@ onMounted(() => {
 
   .nav {
     display: none;
-  }
-
-  .dict-select {
-    width: 100%;
-  }
-
-  .dict-select label {
-    display: grid;
-    gap: 6px;
-  }
-
-  .dict-select select {
-    width: 100%;
   }
 
   .bottom-nav {
