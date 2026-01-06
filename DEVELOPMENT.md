@@ -126,6 +126,56 @@ A web-based Chinese character flashcard tool for children. Users log in with pre
 ## Progress Log
 - 2025-xx-xx: Initialized development plan and requirements.
 
+## Project Knowledge (Current State)
+### Product Scope
+- Web-based Chinese character flashcards for children with responsive UI (mobile/iPad/PC).
+- Users log in with preconfigured accounts (no UI registration).
+- Users input characters only; pinyin is generated offline and common-word hints come from THUOCL.
+- Learning uses spaced repetition (SM-2) and tracks study time.
+- Multi-dictionary model: each user owns dictionaries; dictionaries can be public/private.
+  - Public dictionaries are read-only for non-owners.
+
+### Backend
+- Framework: FastAPI (Python 3.6.9 compatible).
+- Config: `backend/app/core/config.yaml`, loaded by `backend/app/core/config.py`.
+- Auth: JWT + bcrypt; login at `/auth/login`.
+- CORS: currently allow all origins for dev.
+- SQLite schema: `dictionaries`, `characters`, `study_records`, `study_sessions`.
+- Migration script: `backend/app/core/migrate_to_dictionaries.py`
+  - Creates default private dictionary “我的字库” per user.
+  - `--mode all` copies full legacy characters; `--mode studied` copies only studied.
+
+### Backend API (Dictionary-scoped)
+- `GET /dictionaries` list visible dictionaries (owner + public).
+- `POST /dictionaries` create dictionary.
+- `PATCH /dictionaries/{id}` update dictionary (owner only).
+- `DELETE /dictionaries/{id}` delete dictionary (owner only).
+- `POST /dictionaries/{id}/characters/import` import characters (owner only).
+- `GET /dictionaries/{id}/characters/list` list characters (read allowed).
+- `GET /dictionaries/{id}/characters/{hanzi}/info` info with pinyin + common words.
+- `GET /dictionaries/{id}/study/queue` get queue.
+- `POST /dictionaries/{id}/study/review` submit review.
+- `POST /dictionaries/{id}/study/session/start|end` session tracking.
+- `GET /dictionaries/{id}/stats/summary` stats.
+
+### Frontend
+- Framework: Vue 3 + Vite.
+- Auth state: `frontend/src/store/auth.js` (localStorage token).
+- Dictionary state: `frontend/src/store/dictionary.js` (current dictionary + list).
+- API client: `frontend/src/api/client.js` uses `VITE_API_BASE`.
+- Pages:
+  - Login: `frontend/src/pages/LoginPage.vue` (eye icon toggle).
+  - Study: `frontend/src/pages/StudyPage.vue` (card, SM-2 review, audio toggles, dictionary card).
+  - Input: `frontend/src/pages/InputPage.vue` (dictionary select + create, grouped preview, read-only warnings).
+  - Stats: `frontend/src/pages/StatsPage.vue` (summary + progress bars + weekly placeholder).
+  - Dictionaries: `frontend/src/pages/DictionariesPage.vue` (create/edit/delete, public/private).
+- Navigation: top + bottom nav in `frontend/src/App.vue`.
+
+### Deployment Notes
+- Dev: set `VITE_API_BASE=http://127.0.0.1:8000` before `npm run dev`.
+- Apache production: build with `VITE_API_BASE=/api`, deploy `dist/` to `/var/www/hanzi-cards`, proxy `/api` to backend.
+- systemd service example in `README.md`.
+
 ## Open Decisions
 - Confirm THUOCL word list variant (e.g., THUOCL词表合集 or high-frequency subset)
 - Finalize auth config format (YAML)

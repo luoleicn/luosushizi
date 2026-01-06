@@ -20,6 +20,19 @@ PY
 
 将输出填入 `password_hash`。
 
+### 新增账号
+编辑 `backend/app/core/config.yaml`，在 `accounts` 下新增一项：
+
+```yaml
+accounts:
+  - username: "admin"
+    password_hash: "<已有哈希>"
+  - username: "newuser"
+    password_hash: "<新哈希>"
+```
+
+修改后重启后端服务（systemd 或 uvicorn）。
+
 ## THUOCL 导入
 把 THUOCL 词表文件放到 `backend/data/thuocl/`，然后执行：
 
