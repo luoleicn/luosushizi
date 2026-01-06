@@ -4,6 +4,38 @@
     <p>把要认识的字放进来，一字一张卡。</p>
     <div class="grid two">
       <div class="panel">
+        <div class="dict-bar">
+          <label class="field">
+            <span>选择字典</span>
+            <select v-model="dictionary.currentId">
+              <option v-for="item in dictionary.items" :key="item.id" :value="item.id">
+                {{ item.name }}{{ item.visibility === "public" ? "（公开）" : "" }}{{ !item.is_owner && item.visibility === "public" ? "（只读）" : "" }}
+              </option>
+            </select>
+          </label>
+          <button class="btn btn-ghost" @click="showCreate = !showCreate">
+            {{ showCreate ? "收起创建" : "新建字典" }}
+          </button>
+        </div>
+        <div v-if="showCreate" class="create-box">
+          <label class="field">
+            <span>名称</span>
+            <input v-model="newDict.name" type="text" placeholder="例如：一年级识字" />
+          </label>
+          <label class="field">
+            <span>权限</span>
+            <select v-model="newDict.visibility">
+              <option value="private">私有</option>
+              <option value="public">公开</option>
+            </select>
+          </label>
+          <div class="actions">
+            <button class="btn btn-primary" :disabled="loading" @click="createDictionary">
+              {{ loading ? "正在创建..." : "创建" }}
+            </button>
+            <button class="btn btn-ghost" @click="cancelCreate">取消</button>
+          </div>
+        </div>
         <label class="field">
           <span>汉字</span>
           <textarea
@@ -42,6 +74,7 @@
         <p v-if="counts.invalid > 0" class="notice info">
           已自动过滤 {{ counts.invalid }} 个非汉字字符。
         </p>
+        <p v-if="readOnly" class="notice info">当前是公开字典，只能阅读不能修改。</p>
       </div>
       <div class="panel hint-panel">
         <h3>小贴士</h3>
@@ -57,14 +90,22 @@
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { api } from "../api/client";
+import { getDictionaryState, loadDictionaries } from "../store/dictionary";
 
 const text = ref("");
 const loading = ref(false);
 const message = ref("");
 const messageType = ref("info");
 const counts = ref({ total: 0, unique: 0, invalid: 0 });
+const dictionary = getDictionaryState();
+const showCreate = ref(false);
+const newDict = ref({ name: "", visibility: "private" });
+const readOnly = computed(() => {
+  const current = dictionary.items.find((item) => item.id === dictionary.currentId);
+  return current ? !current.is_owner : false;
+});
 
 const isHanzi = (char) => char >= "\u4e00" && char <= "\u9fff";
 
@@ -91,6 +132,44 @@ const updateCounts = () => {
   extractCharacters(text.value);
 };
 
+watch(
+  () => dictionary.currentId,
+  () => {
+    message.value = "";
+    counts.value = { total: 0, unique: 0, invalid: 0 };
+  }
+);
+
+const createDictionary = async () => {
+  if (!newDict.value.name.trim()) {
+    messageType.value = "error";
+    message.value = "请填写字典名称。";
+    return;
+  }
+  loading.value = true;
+  try {
+    await api.createDictionary({
+      name: newDict.value.name.trim(),
+      visibility: newDict.value.visibility,
+    });
+    await loadDictionaries();
+    messageType.value = "success";
+    message.value = "字典创建成功！";
+    showCreate.value = false;
+    newDict.value = { name: "", visibility: "private" };
+  } catch (err) {
+    messageType.value = "error";
+    message.value = err.message || "创建失败，请稍后再试。";
+  } finally {
+    loading.value = false;
+  }
+};
+
+const cancelCreate = () => {
+  showCreate.value = false;
+  newDict.value = { name: "", visibility: "private" };
+};
+
 const clearText = () => {
   text.value = "";
   message.value = "";
@@ -113,6 +192,16 @@ const handleImport = async () => {
   message.value = "";
   updateCounts();
   const items = extractCharacters(text.value);
+  if (!dictionary.currentId) {
+    messageType.value = "error";
+    message.value = "请先选择一个字典。";
+    return;
+  }
+  if (readOnly.value) {
+    messageType.value = "error";
+    message.value = "这是公开字典，只有拥有者才能修改。";
+    return;
+  }
   if (!items.length) {
     messageType.value = "error";
     message.value = "这里只有汉字才会变成卡片哦。";
@@ -120,7 +209,10 @@ const handleImport = async () => {
   }
   loading.value = true;
   try {
-    const result = await api.importCharacters({ items });
+    const result = await api.importCharacters({
+      dictionaryId: dictionary.currentId,
+      items,
+    });
     messageType.value = "success";
     message.value = `已装进 ${result.imported} 个字，跳过 ${result.skipped} 个。真棒！`;
   } catch (err) {
@@ -156,6 +248,28 @@ const handleImport = async () => {
   display: flex;
   gap: 12px;
   margin-top: 16px;
+}
+
+.dict-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.dict-bar .field {
+  flex: 1;
+}
+
+.create-box {
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.04);
+  margin-bottom: 16px;
+  display: grid;
+  gap: 12px;
 }
 
 .summary {

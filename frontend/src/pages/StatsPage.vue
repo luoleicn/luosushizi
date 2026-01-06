@@ -5,6 +5,7 @@
     <p v-if="loading" class="loading">正在加载统计</p>
     <p v-if="error" class="notice error">统计没加载出来，待会儿再看看。</p>
     <p v-if="stats.due_today === 0 && !loading" class="notice success">今天的复习完成啦！</p>
+    <p v-if="readOnly" class="notice info">当前是公开字典，只能查看统计。</p>
     <div class="panel progress-panel">
       <div class="progress-row">
         <span>已掌握</span>
@@ -61,8 +62,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { api } from "../api/client";
+import { getDictionaryState, loadDictionaries } from "../store/dictionary";
 
 const stats = ref({
   total: 0,
@@ -72,12 +74,22 @@ const stats = ref({
 });
 const loading = ref(false);
 const error = ref("");
+const dictionary = getDictionaryState();
+const readOnly = computed(() => {
+  const current = dictionary.items.find((item) => item.id === dictionary.currentId);
+  return current ? !current.is_owner && current.visibility === "public" : false;
+});
 
 const loadStats = async () => {
   loading.value = true;
   error.value = "";
   try {
-    const result = await api.getStats();
+    if (!dictionary.currentId) {
+      error.value = "请先选择一个字典。";
+      stats.value = { total: 0, known: 0, due_today: 0, study_time_total: 0 };
+      return;
+    }
+    const result = await api.getStats(dictionary.currentId);
     stats.value = result;
   } catch (err) {
     error.value = err.message || "Failed to load stats.";
@@ -97,8 +109,23 @@ const formattedTime = computed(() => {
 });
 
 onMounted(() => {
-  loadStats();
+  loadDictionaries().then(() => {
+    if (!dictionary.currentId) {
+      return;
+    }
+    loadStats();
+  });
 });
+
+watch(
+  () => dictionary.currentId,
+  (nextId, prevId) => {
+    if (!nextId || nextId === prevId) {
+      return;
+    }
+    loadStats();
+  }
+);
 
 const knownRate = computed(() => {
   if (!stats.value.total) {

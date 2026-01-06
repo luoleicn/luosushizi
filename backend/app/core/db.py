@@ -17,17 +17,31 @@ def get_connection(db_path: str) -> sqlite3.Connection:
 def init_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(
         """
+        CREATE TABLE IF NOT EXISTS dictionaries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            owner_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            visibility TEXT NOT NULL DEFAULT 'private',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            UNIQUE(owner_id, name)
+        );
+
         CREATE TABLE IF NOT EXISTS characters (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            hanzi TEXT NOT NULL UNIQUE,
+            dictionary_id INTEGER NOT NULL,
+            hanzi TEXT NOT NULL,
             pinyin TEXT NOT NULL,
             source TEXT NOT NULL DEFAULT 'offline',
-            cached_at TEXT NOT NULL
+            cached_at TEXT NOT NULL,
+            UNIQUE(dictionary_id, hanzi),
+            FOREIGN KEY(dictionary_id) REFERENCES dictionaries(id)
         );
 
         CREATE TABLE IF NOT EXISTS study_records (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id TEXT NOT NULL,
+            dictionary_id INTEGER NOT NULL,
             character_id INTEGER NOT NULL,
             ease_factor REAL NOT NULL DEFAULT 2.5,
             interval INTEGER NOT NULL DEFAULT 0,
@@ -35,18 +49,21 @@ def init_schema(conn: sqlite3.Connection) -> None:
             last_reviewed_at TEXT,
             next_review_at TEXT,
             last_rating INTEGER,
-            UNIQUE(user_id, character_id),
-            FOREIGN KEY(character_id) REFERENCES characters(id)
+            UNIQUE(user_id, dictionary_id, character_id),
+            FOREIGN KEY(character_id) REFERENCES characters(id),
+            FOREIGN KEY(dictionary_id) REFERENCES dictionaries(id)
         );
 
         CREATE TABLE IF NOT EXISTS study_sessions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id TEXT NOT NULL,
+            dictionary_id INTEGER NOT NULL,
             started_at TEXT NOT NULL,
             ended_at TEXT,
             total_cards INTEGER NOT NULL DEFAULT 0,
             known_count INTEGER NOT NULL DEFAULT 0,
-            unknown_count INTEGER NOT NULL DEFAULT 0
+            unknown_count INTEGER NOT NULL DEFAULT 0,
+            FOREIGN KEY(dictionary_id) REFERENCES dictionaries(id)
         );
         """
     )

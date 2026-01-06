@@ -4,6 +4,7 @@ import LoginPage from "./pages/LoginPage.vue";
 import InputPage from "./pages/InputPage.vue";
 import StudyPage from "./pages/StudyPage.vue";
 import StatsPage from "./pages/StatsPage.vue";
+import DictionariesPage from "./pages/DictionariesPage.vue";
 import { getAuthState, refreshAuth } from "./store/auth";
 
 const routes = [
@@ -12,6 +13,7 @@ const routes = [
   { path: "/input", component: InputPage },
   { path: "/study", component: StudyPage },
   { path: "/stats", component: StatsPage },
+  { path: "/dictionaries", component: DictionariesPage },
 ];
 
 const router = createRouter({

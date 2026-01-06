@@ -12,7 +12,7 @@ from app.core.config import Settings
 from app.core.db import get_connection
 from app.services.scheduler.sm2 import apply_sm2
 
-router = APIRouter(prefix="/study", tags=["study"])
+router = APIRouter(prefix="/dictionaries/{dictionary_id}/study", tags=["study"])
 
 
 class QueueItem(BaseModel):
@@ -57,22 +57,39 @@ def get_settings(request: Request) -> Settings:
     return request.app.state.settings
 
 
+def fetch_dictionary(conn, dictionary_id: int):
+    return conn.execute(
+        "SELECT id, owner_id, visibility FROM dictionaries WHERE id = ?",
+        (dictionary_id,),
+    ).fetchone()
+
+
+def can_read(dictionary_row, user_id: str) -> bool:
+    return dictionary_row and (
+        dictionary_row["owner_id"] == user_id or dictionary_row["visibility"] == "public"
+    )
+
+
 @router.get("/queue", response_model=QueueResponse)
-def get_queue(request: Request, current_user: dict = Depends(get_current_user)):
+def get_queue(dictionary_id: int, request: Request, current_user: dict = Depends(get_current_user)):
     settings = get_settings(request)
     now = datetime.now(timezone.utc).isoformat()
     conn = get_connection(settings.sqlite.path)
     try:
+        dictionary_row = fetch_dictionary(conn, dictionary_id)
+        if not can_read(dictionary_row, current_user["username"]):
+            return {"items": []}
         rows = conn.execute(
             """
             SELECT c.hanzi, c.pinyin, sr.next_review_at
             FROM characters c
             LEFT JOIN study_records sr
-              ON sr.character_id = c.id AND sr.user_id = ?
-            WHERE sr.next_review_at IS NULL OR sr.next_review_at <= ?
+              ON sr.character_id = c.id AND sr.user_id = ? AND sr.dictionary_id = ?
+            WHERE c.dictionary_id = ?
+              AND (sr.next_review_at IS NULL OR sr.next_review_at <= ?)
             ORDER BY sr.next_review_at IS NULL DESC, sr.next_review_at ASC
             """,
-            (current_user["username"], now),
+            (current_user["username"], dictionary_id, dictionary_id, now),
         ).fetchall()
         items = []
         for row in rows:
@@ -90,13 +107,18 @@ def get_queue(request: Request, current_user: dict = Depends(get_current_user)):
 
 
 @router.post("/review", response_model=ReviewResponse)
-def review_card(payload: ReviewRequest, request: Request, current_user: dict = Depends(get_current_user)):
+def review_card(
+    dictionary_id: int, payload: ReviewRequest, request: Request, current_user: dict = Depends(get_current_user)
+):
     settings = get_settings(request)
     conn = get_connection(settings.sqlite.path)
     try:
+        dictionary_row = fetch_dictionary(conn, dictionary_id)
+        if not can_read(dictionary_row, current_user["username"]):
+            return {"next_review_at": "", "interval": 0, "ease_factor": 2.5}
         row = conn.execute(
-            "SELECT id FROM characters WHERE hanzi = ?",
-            (payload.hanzi,),
+            "SELECT id FROM characters WHERE dictionary_id = ? AND hanzi = ?",
+            (dictionary_id, payload.hanzi),
         ).fetchone()
         if row is None:
             return {"next_review_at": "", "interval": 0, "ease_factor": 2.5}
@@ -106,9 +128,9 @@ def review_card(payload: ReviewRequest, request: Request, current_user: dict = D
             """
             SELECT ease_factor, interval, repetitions
             FROM study_records
-            WHERE user_id = ? AND character_id = ?
+            WHERE user_id = ? AND dictionary_id = ? AND character_id = ?
             """,
-            (current_user["username"], character_id),
+            (current_user["username"], dictionary_id, character_id),
         ).fetchone()
 
         ease_factor = sr["ease_factor"] if sr else 2.5
@@ -126,9 +148,9 @@ def review_card(payload: ReviewRequest, request: Request, current_user: dict = D
 
         conn.execute(
             """
-            INSERT INTO study_records (user_id, character_id, ease_factor, interval, repetitions, last_reviewed_at, next_review_at, last_rating)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(user_id, character_id) DO UPDATE SET
+            INSERT INTO study_records (user_id, dictionary_id, character_id, ease_factor, interval, repetitions, last_reviewed_at, next_review_at, last_rating)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(user_id, dictionary_id, character_id) DO UPDATE SET
               ease_factor = excluded.ease_factor,
               interval = excluded.interval,
               repetitions = excluded.repetitions,
@@ -138,6 +160,7 @@ def review_card(payload: ReviewRequest, request: Request, current_user: dict = D
             """,
             (
                 current_user["username"],
+                dictionary_id,
                 character_id,
                 result.ease_factor,
                 result.interval,
@@ -158,17 +181,20 @@ def review_card(payload: ReviewRequest, request: Request, current_user: dict = D
 
 
 @router.post("/session/start", response_model=SessionStartResponse)
-def start_session(request: Request, current_user: dict = Depends(get_current_user)):
+def start_session(dictionary_id: int, request: Request, current_user: dict = Depends(get_current_user)):
     settings = get_settings(request)
     conn = get_connection(settings.sqlite.path)
     try:
+        dictionary_row = fetch_dictionary(conn, dictionary_id)
+        if not can_read(dictionary_row, current_user["username"]):
+            return {"session_id": 0, "started_at": ""}
         started_at = datetime.now(timezone.utc).isoformat()
         cursor = conn.execute(
             """
-            INSERT INTO study_sessions (user_id, started_at)
-            VALUES (?, ?)
+            INSERT INTO study_sessions (user_id, dictionary_id, started_at)
+            VALUES (?, ?, ?)
             """,
-            (current_user["username"], started_at),
+            (current_user["username"], dictionary_id, started_at),
         )
         conn.commit()
         return {"session_id": cursor.lastrowid, "started_at": started_at}
@@ -178,19 +204,25 @@ def start_session(request: Request, current_user: dict = Depends(get_current_use
 
 @router.post("/session/end", response_model=SessionEndResponse)
 def end_session(
-    payload: SessionEndRequest, request: Request, current_user: dict = Depends(get_current_user)
+    dictionary_id: int,
+    payload: SessionEndRequest,
+    request: Request,
+    current_user: dict = Depends(get_current_user),
 ):
     settings = get_settings(request)
     conn = get_connection(settings.sqlite.path)
     try:
+        dictionary_row = fetch_dictionary(conn, dictionary_id)
+        if not can_read(dictionary_row, current_user["username"]):
+            return {"session_id": payload.session_id, "ended_at": ""}
         ended_at = parse_iso_datetime(payload.ended_at).isoformat()
         conn.execute(
             """
             UPDATE study_sessions
             SET ended_at = ?
-            WHERE id = ? AND user_id = ?
+            WHERE id = ? AND user_id = ? AND dictionary_id = ?
             """,
-            (ended_at, payload.session_id, current_user["username"]),
+            (ended_at, payload.session_id, current_user["username"], dictionary_id),
         )
         conn.commit()
         return {"session_id": payload.session_id, "ended_at": ended_at}

@@ -58,6 +58,19 @@ uvicorn app.main:app --reload --app-dir backend
 python -m app.core.init_db
 ```
 
+## 字典迁移（单字库 -> 多用户字典）
+该迁移会为每个账号创建一个私有字典“我的字库”，并把旧字库迁移进去。
+
+```bash
+python -m app.core.migrate_to_dictionaries --mode all
+```
+
+可选模式：
+- `all`：把旧字库全部复制到每个用户的默认字典（默认）
+- `studied`：仅复制该用户已有学习记录的汉字
+
+迁移完成后会把旧表重命名为 `*_legacy`。
+
 ## 前端（Vue 3 + Vite）
 安装依赖：
 
@@ -225,7 +238,7 @@ curl http://127.0.0.1:8000/auth/me \
 导入汉字：
 
 ```bash
-curl -X POST http://127.0.0.1:8000/characters/import \
+curl -X POST http://127.0.0.1:8000/dictionaries/1/characters/import \
   -H 'Authorization: Bearer <token>' \
   -H 'Content-Type: application/json' \
   -d '{"items":["你","好","学"]}'
@@ -234,14 +247,14 @@ curl -X POST http://127.0.0.1:8000/characters/import \
 获取学习队列：
 
 ```bash
-curl http://127.0.0.1:8000/study/queue \
+curl http://127.0.0.1:8000/dictionaries/1/study/queue \
   -H 'Authorization: Bearer <token>'
 ```
 
 提交复习：
 
 ```bash
-curl -X POST http://127.0.0.1:8000/study/review \
+curl -X POST http://127.0.0.1:8000/dictionaries/1/study/review \
   -H 'Authorization: Bearer <token>' \
   -H 'Content-Type: application/json' \
   -d '{"hanzi":"你","rating":4}'
@@ -250,14 +263,14 @@ curl -X POST http://127.0.0.1:8000/study/review \
 开始学习会话：
 
 ```bash
-curl -X POST http://127.0.0.1:8000/study/session/start \
+curl -X POST http://127.0.0.1:8000/dictionaries/1/study/session/start \
   -H 'Authorization: Bearer <token>'
 ```
 
 结束学习会话：
 
 ```bash
-curl -X POST http://127.0.0.1:8000/study/session/end \
+curl -X POST http://127.0.0.1:8000/dictionaries/1/study/session/end \
   -H 'Authorization: Bearer <token>' \
   -H 'Content-Type: application/json' \
   -d '{"session_id":1}'
@@ -266,13 +279,29 @@ curl -X POST http://127.0.0.1:8000/study/session/end \
 汉字列表：
 
 ```bash
-curl http://127.0.0.1:8000/characters/list \
+curl http://127.0.0.1:8000/dictionaries/1/characters/list \
   -H 'Authorization: Bearer <token>'
 ```
 
 统计汇总：
 
 ```bash
-curl http://127.0.0.1:8000/stats/summary \
+curl http://127.0.0.1:8000/dictionaries/1/stats/summary \
   -H 'Authorization: Bearer <token>'
+```
+
+字典列表：
+
+```bash
+curl http://127.0.0.1:8000/dictionaries \
+  -H 'Authorization: Bearer <token>'
+```
+
+创建字典：
+
+```bash
+curl -X POST http://127.0.0.1:8000/dictionaries \
+  -H 'Authorization: Bearer <token>' \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"我的字库","visibility":"private"}'
 ```
