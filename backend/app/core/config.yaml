@@ -8,6 +8,8 @@ app:
 accounts:
   - username: "luosu"
     password_hash: "$2b$12$NLHgO6SlJMQj0OjQ/ChksuqQlLcI56KjAoLDQmHbENQmkVRaysz5."
+  - username: "ruguo"
+    password_hash: "ruguo123"
 
 # Database
 sqlite:
