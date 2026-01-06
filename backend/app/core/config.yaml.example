@@ -19,3 +19,14 @@ sqlite:
 dictionary:
   source: "thuocl"
   max_common_words: 3
+
+# CORS (dev/prod switch)
+cors:
+  env: "dev"
+  dev_origins:
+    - "http://127.0.0.1:5173"
+    - "http://localhost:5173"
+  prod_origins:
+    - "https://your-domain.com"
+    - "https://www.your-domain.com"
+  allow_credentials: true

@@ -31,6 +31,20 @@ class DictionaryConfig:
         self.max_common_words = max_common_words
 
 
+class CORSConfig:
+    def __init__(
+        self,
+        env: str,
+        dev_origins: List[str],
+        prod_origins: List[str],
+        allow_credentials: bool,
+    ) -> None:
+        self.env = env
+        self.dev_origins = dev_origins
+        self.prod_origins = prod_origins
+        self.allow_credentials = allow_credentials
+
+
 class Settings:
     def __init__(
         self,
@@ -38,11 +52,13 @@ class Settings:
         accounts: List[AccountConfig],
         sqlite: SqliteConfig,
         dictionary: DictionaryConfig,
+        cors: CORSConfig,
     ) -> None:
         self.app = app
         self.accounts = accounts
         self.sqlite = sqlite
         self.dictionary = dictionary
+        self.cors = cors
 
 
 def _require_key(data: Dict[str, Any], key: str) -> Any:
@@ -59,6 +75,7 @@ def load_config(path: str) -> Settings:
     accounts_raw = _require_key(raw, "accounts")
     sqlite_raw = _require_key(raw, "sqlite")
     dict_raw = _require_key(raw, "dictionary")
+    cors_raw = _require_key(raw, "cors")
 
     app = AppConfig(
         name=_require_key(app_raw, "name"),
@@ -81,12 +98,19 @@ def load_config(path: str) -> Settings:
         source=_require_key(dict_raw, "source"),
         max_common_words=int(_require_key(dict_raw, "max_common_words")),
     )
+    cors = CORSConfig(
+        env=_require_key(cors_raw, "env"),
+        dev_origins=_require_key(cors_raw, "dev_origins"),
+        prod_origins=_require_key(cors_raw, "prod_origins"),
+        allow_credentials=bool(_require_key(cors_raw, "allow_credentials")),
+    )
 
     return Settings(
         app=app,
         accounts=accounts,
         sqlite=sqlite,
         dictionary=dictionary,
+        cors=cors,
     )
 
 
@@ -95,4 +119,9 @@ def get_config_path() -> str:
     if env_path:
         return env_path
     # Default to the config.yaml next to this file for stable resolution.
-    return os.path.join(os.path.dirname(__file__), "config.yaml")
+    path = os.path.join(os.path.dirname(__file__), "config.yaml")
+    if not os.path.exists(path):
+        raise FileNotFoundError(
+            "Missing config.yaml. Copy backend/app/core/config.yaml.example to config.yaml."
+        )
+    return path
