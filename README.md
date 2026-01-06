@@ -3,7 +3,24 @@
 面向儿童的识字卡片 Web 应用，离线拼音与常用词提示，支持多端访问与跨设备同步。
 
 ## 配置
-编辑 `backend/app/core/config.yaml` 并设置强度足够的 `secret_key`。
+先将示例文件复制为正式配置文件：
+```bash
+cp backend/app/core/config.yaml.example backend/app/core/config.yaml
+```
+然后编辑 `backend/app/core/config.yaml` 并设置强度足够的 `secret_key`。
+
+### CORS（开发/生产切换）
+在 `config.yaml` 中配置：
+```yaml
+cors:
+  env: "dev"   # dev 或 prod
+  dev_origins:
+    - "http://127.0.0.1:5173"
+    - "http://localhost:5173"
+  prod_origins:
+    - "https://your-domain.com"
+  allow_credentials: true
+```
 
 ### 账号配置
 账号由后端预置，前端不提供注册。请使用 bcrypt 生成密码哈希并填入 `password_hash`。
