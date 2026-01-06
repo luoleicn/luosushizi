@@ -47,19 +47,30 @@
           </div>
         </div>
       </div>
-      <aside class="panel side-panel">
-        <h3>今日</h3>
-        <div class="stat">
-          <span>待复习</span>
-          <strong>{{ stats.due }}</strong>
+      <aside class="side-stack">
+        <div class="panel dict-panel">
+          <h3>字典</h3>
+          <select v-model="dictionary.currentId">
+            <option v-for="item in dictionary.items" :key="item.id" :value="item.id">
+              {{ item.name }}{{ item.visibility === "public" ? "（公开）" : "" }}{{ !item.is_owner && item.visibility === "public" ? "（只读）" : "" }}
+            </option>
+          </select>
+          <p v-if="readOnly" class="notice info">公开字典只读，不能修改。</p>
         </div>
-        <div class="stat">
-          <span>新卡片</span>
-          <strong>{{ stats.new }}</strong>
-        </div>
-        <div class="stat">
-          <span>已复习</span>
-          <strong>{{ stats.reviewed }}</strong>
+        <div class="panel side-panel">
+          <h3>今日</h3>
+          <div class="stat">
+            <span>待复习</span>
+            <strong>{{ stats.due }}</strong>
+          </div>
+          <div class="stat">
+            <span>新卡片</span>
+            <strong>{{ stats.new }}</strong>
+          </div>
+          <div class="stat">
+            <span>已复习</span>
+            <strong>{{ stats.reviewed }}</strong>
+          </div>
         </div>
       </aside>
     </div>
@@ -274,6 +285,21 @@ watch(
   }
 }
 
+.side-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.dict-panel select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: #fff;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
 .card-panel {
   display: grid;
   gap: 18px;
@@ -450,7 +476,8 @@ watch(
   }
 }
 
-.side-panel h3 {
+.side-panel h3,
+.dict-panel h3 {
   margin: 0 0 12px;
 }
 
