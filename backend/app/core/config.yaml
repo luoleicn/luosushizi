@@ -9,7 +9,7 @@ accounts:
   - username: "luosu"
     password_hash: "$2b$12$NLHgO6SlJMQj0OjQ/ChksuqQlLcI56KjAoLDQmHbENQmkVRaysz5."
   - username: "ruguo"
-    password_hash: "ruguo123"
+    password_hash: "$2b$12$Eb0vWOlEUfQvzxgMnNkTpeMH0Y4Be8u.viqSCVBiXgSSRiX4ThJ9W"
 
 # Database
 sqlite:
