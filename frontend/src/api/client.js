@@ -62,37 +62,57 @@ export const api = {
       body: JSON.stringify(payload),
     });
   },
-  me() {
-    return request("/auth/me");
+  listDictionaries() {
+    return request("/dictionaries");
   },
-  getQueue() {
-    return request("/study/queue");
-  },
-  review(payload) {
-    return request("/study/review", {
+  createDictionary(payload) {
+    return request("/dictionaries", {
       method: "POST",
       body: JSON.stringify(payload),
     });
   },
-  startSession() {
-    return request("/study/session/start", { method: "POST" });
+  updateDictionary(dictionaryId, payload) {
+    return request(`/dictionaries/${dictionaryId}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
   },
-  endSession(payload) {
-    return request("/study/session/end", {
+  deleteDictionary(dictionaryId) {
+    return request(`/dictionaries/${dictionaryId}`, {
+      method: "DELETE",
+    });
+  },
+  me() {
+    return request("/auth/me");
+  },
+  getQueue(dictionaryId) {
+    return request(`/dictionaries/${dictionaryId}/study/queue`);
+  },
+  review(dictionaryId, payload) {
+    return request(`/dictionaries/${dictionaryId}/study/review`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+  startSession(dictionaryId) {
+    return request(`/dictionaries/${dictionaryId}/study/session/start`, { method: "POST" });
+  },
+  endSession(dictionaryId, payload) {
+    return request(`/dictionaries/${dictionaryId}/study/session/end`, {
       method: "POST",
       body: JSON.stringify(payload),
     });
   },
   importCharacters(payload) {
-    return request("/characters/import", {
+    return request(`/dictionaries/${payload.dictionaryId}/characters/import`, {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ items: payload.items }),
     });
   },
-  getCharacterInfo(hanzi) {
-    return request(`/characters/${encodeURIComponent(hanzi)}/info`);
+  getCharacterInfo(dictionaryId, hanzi) {
+    return request(`/dictionaries/${dictionaryId}/characters/${encodeURIComponent(hanzi)}/info`);
   },
-  getStats() {
-    return request("/stats/summary");
+  getStats(dictionaryId) {
+    return request(`/dictionaries/${dictionaryId}/stats/summary`);
   },
 };

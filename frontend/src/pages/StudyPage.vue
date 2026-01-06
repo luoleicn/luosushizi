@@ -4,6 +4,7 @@
     <p>认识就点“认识”，不认识就点“不认识”。</p>
     <p v-if="loading" class="loading">正在加载队列</p>
     <p v-if="error" class="notice error">队列加载失败了，稍后再试试。</p>
+    <p v-if="readOnly" class="notice info">当前是公开字典，可以学习但不能修改。</p>
     <div class="study-layout">
       <div class="panel card-panel">
         <div class="card-face" :class="{ empty: !currentCard, reveal: currentCard }">
@@ -66,8 +67,9 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { api } from "../api/client";
+import { getDictionaryState, loadDictionaries } from "../store/dictionary";
 
 const queue = ref([]);
 const currentIndex = ref(0);
@@ -84,6 +86,11 @@ const streak = ref(0);
 const badgeMessage = ref("");
 const encouragement = ref("");
 const soundEnabled = ref(true);
+const dictionary = getDictionaryState();
+const readOnly = computed(() => {
+  const current = dictionary.items.find((item) => item.id === dictionary.currentId);
+  return current ? !current.is_owner && current.visibility === "public" : false;
+});
 
 const currentCard = computed(() => queue.value[currentIndex.value]);
 
@@ -91,7 +98,12 @@ const loadQueue = async () => {
   loading.value = true;
   error.value = "";
   try {
-    const result = await api.getQueue();
+    if (!dictionary.currentId) {
+      error.value = "请先选择一个字典。";
+      queue.value = [];
+      return;
+    }
+    const result = await api.getQueue(dictionary.currentId);
     queue.value = result.items || [];
     currentIndex.value = 0;
     stats.value = {
@@ -107,7 +119,7 @@ const loadQueue = async () => {
 };
 
 const loadHint = async (hanzi) => {
-  const result = await api.getCharacterInfo(hanzi);
+  const result = await api.getCharacterInfo(dictionary.currentId, hanzi);
   hint.value = {
     pinyin: result.pinyin,
     commonWords: result.common_words || [],
@@ -148,7 +160,7 @@ const review = async (rating) => {
   if (stats.value.due > 0) {
     stats.value.due -= 1;
   }
-  await api.review({ hanzi: currentCard.value.hanzi, rating });
+  await api.review(dictionary.currentId, { hanzi: currentCard.value.hanzi, rating });
   stats.value.reviewed += 1;
 };
 
@@ -198,14 +210,19 @@ const reloadQueue = async () => {
 const closeSessionIfNeeded = async () => {
   if (sessionId.value && !sessionClosed.value) {
     sessionClosed.value = true;
-    await api.endSession({ session_id: sessionId.value });
+    await api.endSession(dictionary.currentId, { session_id: sessionId.value });
   }
 };
 
 onMounted(() => {
-  loadQueue();
-  api.startSession().then((result) => {
-    sessionId.value = result.session_id;
+  loadDictionaries().then(() => {
+    if (!dictionary.currentId) {
+      return;
+    }
+    loadQueue();
+    api.startSession(dictionary.currentId).then((result) => {
+      sessionId.value = result.session_id;
+    });
   });
   window.addEventListener("keydown", handleKey);
 });
@@ -228,6 +245,21 @@ const handleKey = (event) => {
     nextCard();
   }
 };
+
+watch(
+  () => dictionary.currentId,
+  async (nextId, prevId) => {
+    if (!nextId || nextId === prevId) {
+      return;
+    }
+    await closeSessionIfNeeded();
+    sessionClosed.value = false;
+    sessionId.value = null;
+    await loadQueue();
+    const result = await api.startSession(nextId);
+    sessionId.value = result.session_id;
+  }
+);
 </script>
 
 <style scoped>

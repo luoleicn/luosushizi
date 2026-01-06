@@ -52,6 +52,7 @@ import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { api } from "../api/client";
 import { setAuth } from "../store/auth";
+import { loadDictionaries } from "../store/dictionary";
 
 const router = useRouter();
 const username = ref("");
@@ -69,6 +70,7 @@ const handleLogin = async () => {
       password: password.value,
     });
     setAuth(response.access_token, response.user);
+    await loadDictionaries();
     router.push("/study");
   } catch (err) {
     error.value = err.message || "Login failed.";

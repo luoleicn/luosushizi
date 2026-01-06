@@ -8,10 +8,21 @@
           <p>Learn one character at a time</p>
         </div>
       </div>
+      <div class="dict-select" v-if="dictionary.items.length">
+        <label>
+          字典
+          <select v-model="dictionary.currentId">
+            <option v-for="item in dictionary.items" :key="item.id" :value="item.id">
+              {{ item.name }}{{ item.visibility === "public" ? "（公开）" : "" }}{{ !item.is_owner && item.visibility === "public" ? "（只读）" : "" }}
+            </option>
+          </select>
+        </label>
+      </div>
       <nav class="nav">
         <router-link to="/study">学习</router-link>
         <router-link to="/input">录入</router-link>
         <router-link to="/stats">统计</router-link>
+        <router-link to="/dictionaries">字典</router-link>
         <router-link v-if="!auth.user" to="/login">登录</router-link>
         <div v-else class="user-desktop">
           <span>{{ auth.user?.username }}</span>
@@ -26,6 +37,7 @@
       <router-link to="/study">学习</router-link>
       <router-link to="/input">录入</router-link>
       <router-link to="/stats">统计</router-link>
+      <router-link to="/dictionaries">字典</router-link>
       <router-link v-if="!auth.user" to="/login">登录</router-link>
       <div v-else class="user-pill">
         <span>{{ auth.user?.username }}</span>
@@ -40,9 +52,11 @@ import { onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { api } from "./api/client";
 import { getAuthState, logout } from "./store/auth";
+import { getDictionaryState, loadDictionaries } from "./store/dictionary";
 
 const router = useRouter();
 const auth = getAuthState();
+const dictionary = getDictionaryState();
 
 const handleLogout = () => {
   logout();
@@ -52,6 +66,7 @@ const handleLogout = () => {
 onMounted(() => {
   if (auth.token) {
     api.me();
+    loadDictionaries();
   }
 });
 </script>
@@ -143,6 +158,22 @@ onMounted(() => {
   font-weight: 600;
 }
 
+.dict-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.dict-select select {
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: #fff;
+  font-weight: 600;
+}
+
 .user-desktop {
   display: flex;
   align-items: center;
@@ -178,11 +209,24 @@ onMounted(() => {
     display: none;
   }
 
+  .dict-select {
+    width: 100%;
+  }
+
+  .dict-select label {
+    display: grid;
+    gap: 6px;
+  }
+
+  .dict-select select {
+    width: 100%;
+  }
+
   .bottom-nav {
     position: sticky;
     bottom: 0;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 8px;
     padding: 12px 12px 18px;
     background: rgba(255, 247, 232, 0.95);
