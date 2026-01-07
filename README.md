@@ -145,6 +145,10 @@ export VITE_API_BASE=/api
 npm run build
 ```
 将 `frontend/dist` 拷贝到 Apache 站点目录（示例：`/var/www/hanzi-cards`）。
+```bash
+rsync -av --delete frontend/dist/ /var/www/hanzi-cards/
+```
+参数说明：`-a` 保留权限与时间戳，`-v` 输出详细信息，`--delete` 删除目标目录中多余文件以保持同步。
 
 ### 2) 启动后端服务
 建议使用 `uvicorn` 或 `gunicorn` 监听本地端口（示例 8000）。
