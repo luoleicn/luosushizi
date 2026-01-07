@@ -174,11 +174,21 @@ sudo a2enmod proxy proxy_http rewrite headers
     ProxyPass /api/ http://127.0.0.1:8000/
     ProxyPassReverse /api/ http://127.0.0.1:8000/
 
-    # SPA history fallback
     RewriteEngine On
-    RewriteCond %{REQUEST_URI} !^/api
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
+
+    # 1) API 不走 SPA
+    RewriteRule ^/api/ - [L]
+
+    # 2) 静态资源直接放行（避免被 SPA 重写）
+    RewriteRule ^/assets/ - [L]
+    RewriteRule ^/sounds/ - [L]
+
+    # 3) 真实文件/目录放行
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # 4) 其它走 SPA fallback
     RewriteRule ^ /index.html [L]
 </VirtualHost>
 ```
