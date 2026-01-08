@@ -212,4 +212,12 @@ frontend/node_modules/
 frontend/dist/
 frontend/.vite/
 
+# Backend artifacts
+backend/.env
+backend/*.db
+backend/*.db-journal
+backend/logs/
+backend/app/uploads/
+backend/app/static/
+
 backend/app/core/config.yaml
