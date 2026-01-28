@@ -60,14 +60,14 @@ python backend/app/services/dictionary/thuocl_import.py \
 ```
 
 ## 后端（FastAPI）
-本项目兼容 Python 3.6.9，依赖已在 `backend/requirements.txt` 中固定版本。
+本项目依赖 Python 3.11，依赖已在 `backend/requirements.txt` 中固定版本。
 
 ### macOS 环境准备
-- 安装 Python 3.6.9+（建议 3.10+，Homebrew：`brew install python`）
+- 安装 Python 3.11（Homebrew：`brew install python`）
 - 安装 Node.js 18+（建议使用 Homebrew：`brew install node`）
 
 ### Ubuntu 环境准备
-- 安装 Python 3.6.9+：`sudo apt-get update && sudo apt-get install -y python3 python3-venv python3-pip`
+- 安装 Python 3.11：`sudo apt-get update && sudo apt-get install -y python3.11 python3.11-venv python3-pip`
 - 安装 Node.js 18+（示例）：`sudo apt-get install -y nodejs npm`
 
 安装依赖：
@@ -87,19 +87,6 @@ uvicorn app.main:app --reload --app-dir backend
 ```bash
 python -m app.core.init_db
 ```
-
-## 字典迁移（单字库 -> 多用户字典）
-该迁移会为每个账号创建一个私有字典“我的字库”，并把旧字库迁移进去。
-
-```bash
-python -m app.core.migrate_to_dictionaries --mode all
-```
-
-可选模式：
-- `all`：把旧字库全部复制到每个用户的默认字典（默认）
-- `studied`：仅复制该用户已有学习记录的汉字
-
-迁移完成后会把旧表重命名为 `*_legacy`。
 
 ## 前端（Vue 3 + Vite）
 安装依赖：
